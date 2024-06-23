@@ -1,5 +1,8 @@
-# MQL5-CommissionGrindr
-A Proof of Concept EA (Expert Advisor) to show the dangers of running a random EA on a trading account via grinding the balance to 0 via commissions as quickly as possible.
+# MQL5-MaliciousEAmporium
+Proof of Concept EAs (Expert Advisor) to show the potential dangers of running a random EA on a trading account. 
+
+# CommissionGrindr
+A Proof of Concept EA (Expert Advisor) to show the potential danger of running a random EA on a trading account via grinding the balance to 0 via commissions as quickly as possible.
 
 # Discord Market Wizardry Community / Darwinex Zero Coupon Code
 - Join my Discord community for support with my EA and indicators, and also share trading ideas at http://marketwizardry.info/
