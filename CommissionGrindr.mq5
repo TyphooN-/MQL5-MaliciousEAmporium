@@ -23,15 +23,16 @@
  **/
 #property copyright "Copyright 2024 TyphooN (MarketWizardry.org)"
 #property link      "http://marketwizardry.info/"
-#property version   "1.001"
+#property version   "1.002"
 #property description "TyphooN's Commission Grindr"
 #include <Trade\Trade.mqh>
 #include <Orchard\RiskCalc.mqh>
 double TotalLotsToSell = 999999999999999;
-double LotsTraded = 0.0; // Variable to keep track of the total lots sold
+double LotsTraded = 0.0;
 double MaxLots = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
 double MinLots = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
-datetime lastBroadcastTime = 0; // Variable to keep track of the last broadcast time
+datetime LastDiscordBroadcastTime = 0;
+string LastDiscordAnnouncement = "";
 int broadcastCooldown = 1; // Cooldown period in seconds
 CTrade Trade; // Create an instance of the trade class
 // orchard compat functions
@@ -56,24 +57,28 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    BroadcastAccountInfo();
-   // Main loop to sell up to TotalLotsToSell
-   while(LotsTraded < TotalLotsToSell)
-   {
-      if(!PlaceOrders(MaxLots))
+    // Calculate the maximum lots to trade based on available margin
+    double maxLotsToTrade = CalculateMaxLots(_Symbol);
+    Print("Max lots to trade based on available margin: ", maxLotsToTrade);
+    // Main loop to sell up to the calculated maxLotsToTrade
+    while (LotsTraded < TotalLotsToSell)
+    {
+      if (!PlaceOrders(maxLotsToTrade))
       {
          if (!PlaceOrders(MinLots))
          {
-            Print("Exiting loop due to failed order placement.");
+            Print("Exiting loop due to failed order placement.  Closing all open positions.");
             CloseAllPositionsOnAllSymbols();
             break; // Exit the loop if the order placement fails
          }
       }
    }
 }
+
 void BroadcastAccountInfo()
 {
    // Check if the cooldown period has been met
-   if (TimeCurrent() - lastBroadcastTime < broadcastCooldown)
+   if (TimeCurrent() - LastDiscordBroadcastTime < broadcastCooldown)
    {
       Print("Cooldown period not met. Skipping broadcast.");
       return;
@@ -89,6 +94,13 @@ void BroadcastAccountInfo()
    string leverageFormatted = StringFormat("1:%.0f", leverage);
    string announcement = StringFormat( "[%s] Account #: %s (%s) Balance: %.2f Equity: %.2f Attached Symbol: %s Leverage: %s",
        server, accountNumber, accountName, balance, equity, _Symbol, leverageFormatted);
+   // Check if the announcement message is the same as the last one
+   if (announcement == LastDiscordAnnouncement)
+   {
+      Print("Announcement message is the same as the last one. Skipping broadcast.");
+      return;
+   }
+
    BroadcastDiscordAnnouncement(announcement);
 }
 void CloseAllPositionsOnAllSymbols()
@@ -105,7 +117,6 @@ void CloseAllPositionsOnAllSymbols()
       ulong ticket = PositionGetTicket(i); // Get position ticket number
       double positionVolume = PositionGetDouble(POSITION_VOLUME); // Get position volume
       string symbol = PositionGetString(POSITION_SYMBOL); // Get position symbol
-      
       if (Trade.PositionClose(ticket))
       {
          Print("Closing position ", ticket, " on symbol ", symbol, " with volume ", positionVolume);
@@ -115,6 +126,20 @@ void CloseAllPositionsOnAllSymbols()
          Print("Failed to close position ", ticket, " on symbol ", symbol, ". Error: ", GetLastError());
       }
    }
+}
+double CalculateMaxLots(string symbol)
+{
+   double marginPerLot = SymbolInfoDouble(symbol, SYMBOL_MARGIN_INITIAL);
+   double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+   // Calculate the maximum lots that can be afforded
+   double maxLots = freeMargin / marginPerLot;
+   // Ensure the maximum lots do not exceed the broker's maximum lot size
+   if (maxLots > MaxLots)
+   {
+      maxLots = MaxLots;
+   }
+   Print(maxLots);
+   return maxLots;
 }
 bool PlaceOrders(double lots)
 {
