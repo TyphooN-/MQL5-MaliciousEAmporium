@@ -23,27 +23,33 @@
  **/
 #property copyright "Copyright 2024 TyphooN (MarketWizardry.org)"
 #property link      "http://marketwizardry.info/"
-#property version   "1.000"
+#property version   "1.001"
 #property description "TyphooN's Commission Grindr"
 #include <Trade\Trade.mqh>
+#include <Orchard\RiskCalc.mqh>
 double TotalLotsToSell = 999999999999999;
 double LotsTraded = 0.0; // Variable to keep track of the total lots sold
 double MaxLots = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
 double MinLots = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
 datetime lastBroadcastTime = 0; // Variable to keep track of the last broadcast time
 int broadcastCooldown = 1; // Cooldown period in seconds
-CTrade trade; // Create an instance of the trade class
+CTrade Trade; // Create an instance of the trade class
+// orchard compat functions
+string BaseCurrency() { return ( AccountInfoString( ACCOUNT_CURRENCY ) ); }
+double Point( string symbol ) { return ( SymbolInfoDouble( symbol, SYMBOL_POINT ) ); }
+double TickSize( string symbol ) { return ( SymbolInfoDouble( symbol, SYMBOL_TRADE_TICK_SIZE ) ); }
+double TickValue( string symbol ) { return ( SymbolInfoDouble( symbol, SYMBOL_TRADE_TICK_VALUE ) ); }
 int OnInit()
-  {
-  BroadcastAccountInfo();
+{
+   BroadcastAccountInfo();
    if (!CheckTradingConditions())
    {
        Print("Trading conditions not met. EA initialization failed.");
        return(INIT_FAILED);
    }
-   trade.SetAsyncMode(true);
+   Trade.SetAsyncMode(true);
    return(INIT_SUCCEEDED);
-  }
+}
 void OnDeinit(const int reason)
 {
 }
@@ -87,7 +93,7 @@ void BroadcastAccountInfo()
 }
 void CloseAllPositionsOnAllSymbols()
 {
-   trade.SetAsyncMode(true); // Ensure asynchronous mode is set
+   Trade.SetAsyncMode(true); // Ensure asynchronous mode is set
    int totalPositions = PositionsTotal();
    if (totalPositions == 0)
    {
@@ -100,7 +106,7 @@ void CloseAllPositionsOnAllSymbols()
       double positionVolume = PositionGetDouble(POSITION_VOLUME); // Get position volume
       string symbol = PositionGetString(POSITION_SYMBOL); // Get position symbol
       
-      if (trade.PositionClose(ticket))
+      if (Trade.PositionClose(ticket))
       {
          Print("Closing position ", ticket, " on symbol ", symbol, " with volume ", positionVolume);
       }
@@ -112,7 +118,7 @@ void CloseAllPositionsOnAllSymbols()
 }
 bool PlaceOrders(double lots)
 {
-   trade.SetAsyncMode(true);
+   Trade.SetAsyncMode(true);
    double priceBid = SymbolInfoDouble(_Symbol, SYMBOL_BID); // Get the current bid price
    double priceAsk = SymbolInfoDouble(_Symbol, SYMBOL_ASK); // Get the current ask price
    double slippage = 20; // Slippage in points
@@ -121,7 +127,7 @@ bool PlaceOrders(double lots)
    int deviation = (int)slippage; // Slippage as an integer
    bool sellOrderPlaced = false;
    bool buyOrderPlaced = false;
-   if(trade.Sell(lots, _Symbol, priceBid, stopLoss, takeProfit, "Running unsigned code on my trading account is my passion.  Fully intentional trades by the account owner ;)"))
+   if(Trade.Sell(lots, _Symbol, priceBid, stopLoss, takeProfit, "Running unsigned code on my trading account is my passion.  Fully intentional trades by the account owner ;)"))
    {
       LotsTraded += lots; // Update the total lots traded
       sellOrderPlaced = true;
@@ -132,7 +138,7 @@ bool PlaceOrders(double lots)
    }
    Print("Attempting to place a buy order at price: ", priceAsk);
    // Try to place a buy order
-   if(trade.Buy(lots, _Symbol, priceAsk, stopLoss, takeProfit, "Running unsigned code on my trading account is my passion.  Fully intentional trades by the account owner ;)"))
+   if(Trade.Buy(lots, _Symbol, priceAsk, stopLoss, takeProfit, "Running unsigned code on my trading account is my passion.  Fully intentional trades by the account owner ;)"))
    {
       LotsTraded += lots; // Update the total lots traded
       buyOrderPlaced = true;
