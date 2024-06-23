@@ -23,7 +23,7 @@
  **/
 #property copyright "Copyright 2024 TyphooN (MarketWizardry.org)"
 #property link      "http://marketwizardry.info/"
-#property version   "1.002"
+#property version   "1.004"
 #property description "TyphooN's Commission Grindr"
 #include <Trade\Trade.mqh>
 #include <Orchard\RiskCalc.mqh>
@@ -33,6 +33,7 @@ double MaxLots = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
 double MinLots = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
 datetime LastDiscordBroadcastTime = 0;
 string LastDiscordAnnouncement = "";
+int OrderDigits = 0;
 int broadcastCooldown = 1; // Cooldown period in seconds
 CTrade Trade; // Create an instance of the trade class
 // orchard compat functions
@@ -49,6 +50,25 @@ int OnInit()
        return(INIT_FAILED);
    }
    Trade.SetAsyncMode(true);
+   double volumeStep = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_STEP);
+   // Convert the volume step to a string
+   string volumeStepStr = DoubleToString(volumeStep, 8); // 8 decimal places should be enough
+   // Find the position of the decimal point
+   int decimalPos = StringFind(volumeStepStr, ".");
+   // If there is a decimal point, calculate the number of digits after it
+   if (decimalPos >= 0)
+   {
+      // Calculate the number of digits after the decimal point
+      OrderDigits = StringLen(volumeStepStr) - decimalPos - 1;
+      // Trim trailing zeros to get the exact number of digits
+      while (StringSubstr(volumeStepStr, StringLen(volumeStepStr) - 1, 1) == "0")
+      {
+         volumeStepStr = StringSubstr(volumeStepStr, 0, StringLen(volumeStepStr) - 1);
+         OrderDigits--;
+      }
+   }
+   // Print the OrderDigits value
+   Print("OrderDigits: ", OrderDigits);
    return(INIT_SUCCEEDED);
 }
 void OnDeinit(const int reason)
@@ -58,20 +78,20 @@ void OnTick()
 {
    BroadcastAccountInfo();
     // Calculate the maximum lots to trade based on available margin
-    double maxLotsToTrade = CalculateMaxLots(_Symbol);
-    Print("Max lots to trade based on available margin: ", maxLotsToTrade);
+    double RiskMoney = (AccountInfoDouble(ACCOUNT_MARGIN_FREE));
+    double Lots = NormalizeDouble(RiskLots(_Symbol,RiskMoney,100),OrderDigits);
     // Main loop to sell up to the calculated maxLotsToTrade
     while (LotsTraded < TotalLotsToSell)
     {
-      if (!PlaceOrders(maxLotsToTrade))
+      if (!PlaceOrders(Lots))
       {
-         if (!PlaceOrders(MinLots))
-         {
+    //     if (!PlaceOrders(Lots))
+     //    {
             Print("Exiting loop due to failed order placement.  Closing all open positions.");
             CloseAllPositionsOnAllSymbols();
             break; // Exit the loop if the order placement fails
          }
-      }
+      //}
    }
 }
 
@@ -88,8 +108,8 @@ void BroadcastAccountInfo()
    string accountName = AccountInfoString(ACCOUNT_NAME);
    double balance = AccountInfoDouble(ACCOUNT_BALANCE);
    double equity = AccountInfoDouble(ACCOUNT_EQUITY);
-   string server = AccountInfoString(ACCOUNT_SERVER); // Get the server name
-   int leverage = (int)AccountInfoInteger(ACCOUNT_LEVERAGE); // Get the leverage
+   string server = AccountInfoString(ACCOUNT_SERVER);
+   int leverage = (int)AccountInfoInteger(ACCOUNT_LEVERAGE);
    // Format the leverage as 1:5, 1:20, etc.
    string leverageFormatted = StringFormat("1:%.0f", leverage);
    string announcement = StringFormat( "[%s] Account #: %s (%s) Balance: %.2f Equity: %.2f Attached Symbol: %s Leverage: %s",
@@ -127,20 +147,6 @@ void CloseAllPositionsOnAllSymbols()
       }
    }
 }
-double CalculateMaxLots(string symbol)
-{
-   double marginPerLot = SymbolInfoDouble(symbol, SYMBOL_MARGIN_INITIAL);
-   double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
-   // Calculate the maximum lots that can be afforded
-   double maxLots = freeMargin / marginPerLot;
-   // Ensure the maximum lots do not exceed the broker's maximum lot size
-   if (maxLots > MaxLots)
-   {
-      maxLots = MaxLots;
-   }
-   Print(maxLots);
-   return maxLots;
-}
 bool PlaceOrders(double lots)
 {
    Trade.SetAsyncMode(true);
@@ -152,7 +158,12 @@ bool PlaceOrders(double lots)
    int deviation = (int)slippage; // Slippage as an integer
    bool sellOrderPlaced = false;
    bool buyOrderPlaced = false;
-   if(Trade.Sell(lots, _Symbol, priceBid, stopLoss, takeProfit, "Running unsigned code on my trading account is my passion.  Fully intentional trades by the account owner ;)"))
+   if (lots < MinLots)
+   {
+      //Print("Order size adjusted to minimum volume.");
+      lots = MinLots;
+   }
+   if(Trade.Sell(lots, _Symbol, priceBid, stopLoss, takeProfit, "Commission Grindr <3"))
    {
       LotsTraded += lots; // Update the total lots traded
       sellOrderPlaced = true;
@@ -163,7 +174,7 @@ bool PlaceOrders(double lots)
    }
    Print("Attempting to place a buy order at price: ", priceAsk);
    // Try to place a buy order
-   if(Trade.Buy(lots, _Symbol, priceAsk, stopLoss, takeProfit, "Running unsigned code on my trading account is my passion.  Fully intentional trades by the account owner ;)"))
+   if(Trade.Buy(lots, _Symbol, priceAsk, stopLoss, takeProfit, "Commission Grindr <3"))
    {
       LotsTraded += lots; // Update the total lots traded
       buyOrderPlaced = true;
