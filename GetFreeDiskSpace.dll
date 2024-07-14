@@ -1,0 +1,14 @@
+#include <windows.h>
+
+extern "C" __declspec(dllexport) long long GetFreeDiskSpace(const char* drive)
+{
+    ULARGE_INTEGER freeBytesAvailable;
+    ULARGE_INTEGER totalNumberOfBytes;
+    ULARGE_INTEGER totalNumberOfFreeBytes;
+
+    if (GetDiskFreeSpaceEx(drive, &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes))
+    {
+        return (long long)freeBytesAvailable.QuadPart;
+    }
+    return -1; // Error
+}
