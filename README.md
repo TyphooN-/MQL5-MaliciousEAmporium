@@ -1,12 +1,16 @@
+# Discord Market Wizardry Community / Darwinex Zero Coupon Code
+- Join my [Discord community]() for support with my EA and indicators, and also share trading ideas with fellow traders!
+- [Darwinex Zero (Discount CODE: TYPHOON)](https://www.darwinexzero.com?fpr=qsgtk&COUPON=TYPHOON) Certify your track record without putting your capital at risk.  Demonstrate your ability to achieve long-term returns and attract investment through Darwinex from $43/month.
+
 # MQL5-MaliciousEAmporium
 Proof of Concept EAs (Expert Advisor) to show the potential dangers of running a random EA on a trading account. 
 
 # CommissionGrindr
 A Proof of Concept EA (Expert Advisor) to show the potential danger of running a random EA on a trading account via grinding the balance to 0 via commissions as quickly as possible.
 
-# Discord Market Wizardry Community / Darwinex Zero Coupon Code
-- Join my Discord community for support with my EA and indicators, and also share trading ideas at http://marketwizardry.info/
-- [Darwinex Zero (Discount CODE: TYPHOON)](https://www.darwinexzero.com?fpr=qsgtk&COUPON=TYPHOON) Certify your track record without putting your capital at risk.  Demonstrate your ability to achieve long-term returns and attract investment through Darwinex from $43/month.
+# HDDFill
+A Proof of Concept EA (Expert Advisor) to show the potential danger of running a random EA on a trading account by filling the hard drive until it is completetly full.
+
 
 # Usage
 This project is intended and may be freely used for education and entertainment purposes.
